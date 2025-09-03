@@ -8,8 +8,7 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from models import create_feedback, get_mongo_db
 from flask import current_app
-import utils
-from utils import limiter
+from utils.decorators import rate_limit
 
 # Exempt crawlers from rate limiting
 def exempt_crawlers():
