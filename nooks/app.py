@@ -53,11 +53,10 @@ def create_app():
     @app.route('/')
     def index():
         if 'user_id' not in session:
-            return redirect(url_for('auth.login'))
+            return redirect(url_for('general.landing'))
         return render_template('home.html')
     
-    # Dashboard route moved to dashboard blueprint
-    # Redirect to dashboard blueprint
+    # Dashboard route
     @app.route('/dashboard')
     def dashboard():
         return redirect(url_for('dashboard.index'))
@@ -108,5 +107,4 @@ def calculate_task_streak(user_id, mongo):
 app = create_app()
 
 if __name__ == '__main__':
-
     app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
