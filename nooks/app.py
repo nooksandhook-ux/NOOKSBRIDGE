@@ -38,22 +38,26 @@ def create_app():
     app.config['MONGO_URI'] = os.environ.get('MONGO_URI', 'mongodb://localhost:27017/nook_hook_app')
     
     # Initialize extensions
+    logger.debug("Initializing Flask extensions...")
     app.limiter = Limiter(
         app=app,
         key_func=get_remote_address,
+        storage_uri="memory://",  # Use in-memory storage; replace with "redis://localhost:6379" for Redis
         default_limits=["200 per day", "50 per hour"]
     )
     app.mongo = PyMongo(app)
     
     # Initialize database with application context
+    logger.debug("Initializing database...")
     with app.app_context():
         try:
             if not DatabaseManager.initialize_database(app.mongo):
                 logger.error("Failed to initialize database")
         except Exception as e:
-            logger.error(f"Error during database initialization: {str(e)}")
+            logger.error(f"Error during database initialization: {str(e)}", exc_info=True)
     
     # Register blueprints
+    logger.debug("Registering blueprints...")
     try:
         app.register_blueprint(auth_bp, url_prefix='/auth')
         app.register_blueprint(general_bp, url_prefix='/general')
@@ -66,7 +70,7 @@ def create_app():
         app.register_blueprint(api_bp, url_prefix='/api')
         app.register_blueprint(quotes_bp, url_prefix='/quotes')
     except Exception as e:
-        logger.error(f"Error registering blueprints: {str(e)}")
+        logger.error(f"Error registering blueprints: {str(e)}", exc_info=True)
     
     @app.route('/')
     def index():
@@ -78,6 +82,7 @@ def create_app():
     def dashboard():
         return redirect(url_for('dashboard.index'))
     
+    logger.debug("Flask app created successfully")
     return app
 
 def calculate_reading_streak(user_id, mongo):
@@ -100,7 +105,7 @@ def calculate_reading_streak(user_id, mongo):
         
         return streak
     except Exception as e:
-        logger.error(f"Error calculating reading streak: {str(e)}")
+        logger.error(f"Error calculating reading streak: {str(e)}", exc_info=True)
         return 0
 
 def calculate_task_streak(user_id, mongo):
@@ -123,11 +128,12 @@ def calculate_task_streak(user_id, mongo):
         
         return streak
     except Exception as e:
-        logger.error(f"Error calculating task streak: {str(e)}")
+        logger.error(f"Error calculating task streak: {str(e)}", exc_info=True)
         return 0
 
 # Create the app instance
 app = create_app()
 
 if __name__ == '__main__':
+    logger.debug("Starting Flask app in debug mode...")
     app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
