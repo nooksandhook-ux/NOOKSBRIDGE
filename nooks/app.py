@@ -25,7 +25,12 @@ from blueprints.quotes.routes import quotes_bp
 
 def create_app():
     app = Flask(__name__)
-    
+
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"]
+)
     # Configuration
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
     app.config['MONGO_URI'] = os.environ.get('MONGO_URI', 'mongodb://localhost:27017/nook_hook_app')
@@ -110,3 +115,4 @@ app = create_app()
 if __name__ == '__main__':
 
     app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
