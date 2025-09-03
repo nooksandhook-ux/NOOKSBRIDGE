@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, session, request, make_response, current_app, limiter
+from flask import Blueprint, render_template, redirect, url_for, flash, session, request, make_response, current_app
 from flask_wtf import FlaskForm
 from flask_wtf.csrf import CSRFError
 from wtforms import StringField, TextAreaField, SubmitField
