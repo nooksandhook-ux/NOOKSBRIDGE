@@ -1,0 +1,70 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script>{% extends "base.html" %}
+{% block content %}
+<section class="about py-5">
+    <div class="container">
+        <h1 class="text-primary">
+            <i class="bi bi-info-circle me-2"></i>About Nook & Hook
+        </h1>
+        <p class="lead">Nook & Hook is a gamified platform designed to empower Nigerian readers by combining reading tracking with productivity tools and rewards.</p>
+        
+        <h2>Our Mission</h2>
+        <p>To bridge the gap between reading for personal growth and practical daily needs, offering Nigerian users a unique way to earn small financial rewards while building consistent reading and productivity habits.</p>
+        
+        <h2>Our Vision</h2>
+        <p>To create a vibrant community of readers and doers who transform their lives through knowledge and action, supported by a sustainable, rewarding platform.</p>
+        
+        <h2>Why Nook & Hook?</h2>
+        <ul class="list-unstyled">
+            <li><i class="bi bi-check-circle-fill text-primary me-2"></i>Track your reading progress with an intuitive interface.</li>
+            <li><i class="bi bi-check-circle-fill text-primary me-2"></i>Boost productivity with customizable Pomodoro timers.</li>
+            <li><i class="bi bi-check-circle-fill text-primary me-2"></i>Earn ₦10 for every verified quote from non-fiction books.</li>
+            <li><i class="bi bi-check-circle-fill text-primary me-2"></i>Enjoy a mobile-first, offline-capable experience with our Progressive Web App.</li>
+        </ul>
+        
+        <div class="text-center mt-4">
+            <a href="{{ url_for('general_bp.contact') }}" class="btn btn-primary">
+                <i class="bi bi-envelope me-2"></i>Contact Us
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}

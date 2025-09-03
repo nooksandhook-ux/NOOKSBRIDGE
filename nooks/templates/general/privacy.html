@@ -1,0 +1,79 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script>{% extends "base.html" %}
+{% block content %}
+<section class="privacy py-5">
+    <div class="container">
+        <h1 class="text-primary">
+            <i class="bi bi-shield-lock me-2"></i>Privacy Policy
+        </h1>
+        <p>Effective Date: September 3, 2025</p>
+        
+        <h2>Introduction</h2>
+        <p>NOOKSBRIDGE LTD/GTE ("Nook & Hook") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your personal information.</p>
+        
+        <h2>Information We Collect</h2>
+        <ul class="list-unstyled">
+            <li><i class="bi bi-check-circle-fill text-primary me-2"></i>Personal Information: Name, email address, and other details you provide during registration or feedback submission.</li>
+            <li><i class="bi bi-check-circle-fill text-primary me-2"></i>Usage Data: Information about how you interact with our platform, such as reading progress and productivity sessions.</li>
+            <li><i class="bi bi-check-circle-fill text-primary me-2"></i>Device Information: Device type, browser, and IP address for analytics and security purposes.</li>
+        </ul>
+        
+        <h2>How We Use Your Information</h2>
+        <ul class="list-unstyled">
+            <li><i class="bi bi-check-circle-fill text-primary me-2"></i>To provide and improve our services, including personalized analytics and rewards.</li>
+            <li><i class="bi bi-check-circle-fill text-primary me-2"></i>To verify quotes and process rewards for Nigerian users.</li>
+            <li><i class="bi bi-check-circle-fill text-primary me-2"></i>To communicate with you via email (nooksandhook@gmail.com) for support and updates.</li>
+        </ul>
+        
+        <h2>Information Sharing</h2>
+        <p>We do not sell or share your personal information with third parties except as required by law or to provide our services (e.g., Google Books API for book data).</p>
+        
+        <h2>Security</h2>
+        <p>We use industry-standard security measures, including password hashing and secure session management, to protect your data.</p>
+        
+        <h2>Your Rights</h2>
+        <p>You can access, update, or delete your data by contacting us at <a href="mailto:nooksandhook@gmail.com">nooksandhook@gmail.com</a>.</p>
+        
+        <h2>Contact Us</h2>
+        <p>For questions about this Privacy Policy, please email us at <a href="mailto:nooksandhook@gmail.com">nooksandhook@gmail.com</a>.</p>
+    </div>
+</section>
+{% endblock %}

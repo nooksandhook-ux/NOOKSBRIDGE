@@ -1,0 +1,75 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script>{% extends "base.html" %}
+{% block content %}
+<section class="terms py-5">
+    <div class="container">
+        <h1 class="text-primary">
+            <i class="bi bi-file-earmark-text me-2"></i>Terms of Service
+        </h1>
+        <p>Effective Date: September 3, 2025</p>
+        
+        <h2>Acceptance of Terms</h2>
+        <p>By using Nook & Hook, you agree to these Terms of Service and our Privacy Policy.</p>
+        
+        <h2>Use of the Platform</h2>
+        <ul class="list-unstyled">
+            <li><i class="bi bi-check-circle-fill text-primary me-2"></i>You must register an account to access most features, including the reading tracker and productivity timer.</li>
+            <li><i class="bi bi-check-circle-fill text-primary me-2"></i>You are responsible for maintaining the confidentiality of your account credentials.</li>
+        </ul>
+        
+        <h2>Quote-Based Reward System</h2>
+        <ul class="list-unstyled">
+            <li><i class="bi bi-check-circle-fill text-primary me-2"></i>Users can submit verbatim quotes from non-fiction books to earn ₦10 per verified quote.</li>
+            <li><i class="bi bi-check-circle-fill text-primary me-2"></i>Quotes must be accurate, include the correct page number, and pass admin verification.</li>
+            <li><i class="bi bi-check-circle-fill text-primary me-2"></i>NOOKSBRIDGE LTD/GTE reserves the right to reject quotes that do not meet our standards or appear fraudulent.</li>
+        </ul>
+        
+        <h2>User Conduct</h2>
+        <p>You agree not to use the platform for unlawful purposes or to submit false or misleading information.</p>
+        
+        <h2>Termination</h2>
+        <p>We may suspend or terminate your account for violations of these terms or fraudulent activity.</p>
+        
+        <h2>Contact Us</h2>
+        <p>For questions about these Terms of Service, please email us at <a href="mailto:nooksandhook@gmail.com">nooksandhook@gmail.com</a>.</p>
+    </div>
+</section>
+{% endblock %}
