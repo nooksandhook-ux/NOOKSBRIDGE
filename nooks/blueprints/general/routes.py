@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, session, request, make_response
+from flask import Blueprint, render_template, redirect, url_for, flash, session, request, make_response, current_app, limiter
 from flask_wtf import FlaskForm
 from flask_wtf.csrf import CSRFError
 from wtforms import StringField, TextAreaField, SubmitField
@@ -7,7 +7,6 @@ from jinja2.exceptions import TemplateNotFound
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from models import FeedbackModel
-from flask import current_app
 from utils.decorators import rate_limit, get_mongo_db
 
 # Exempt crawlers from rate limiting
