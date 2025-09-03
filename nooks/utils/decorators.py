@@ -25,22 +25,3 @@ def admin_required(f):
         
         return f(*args, **kwargs)
     return decorated_function
-
-def rate_limit(limit):
-    """Custom decorator to apply rate limiting to specific routes"""
-    def decorator(f):
-        @wraps(f)
-        @current_app.limiter.limit(limit)  # Use current_app.limiter
-        def wrapped_function(*args, **kwargs):
-            return f(*args, **kwargs)
-        return wrapped_function
-    return decorator
-
-def get_mongo_db():
-    """Retrieve the MongoDB database connection from the Flask app context."""
-    try:
-        return current_app.mongo.db
-    except AttributeError as e:
-        current_app.logger.error(f"MongoDB not initialized: {str(e)}")
-        raise Exception("MongoDB connection is not initialized in the application context")
-
