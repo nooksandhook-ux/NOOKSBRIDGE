@@ -13,6 +13,7 @@ from models import DatabaseManager, UserModel, AdminUtils
 
 # Import blueprints
 from blueprints.auth.routes import auth_bp
+from blueprints.general.routes import general_bp
 from blueprints.nook.routes import nook_bp
 from blueprints.hook.routes import hook_bp
 from blueprints.admin.routes import admin_bp
@@ -39,6 +40,7 @@ def create_app():
     
     # Register blueprints
     app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(general_bp, url_prefix='/general')
     app.register_blueprint(nook_bp, url_prefix='/nook')
     app.register_blueprint(hook_bp, url_prefix='/hook')
     app.register_blueprint(admin_bp, url_prefix='/admin')
@@ -106,4 +108,5 @@ def calculate_task_streak(user_id, mongo):
 app = create_app()
 
 if __name__ == '__main__':
+
     app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
