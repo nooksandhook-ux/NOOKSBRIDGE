@@ -1,10 +1,3 @@
-"""
-Database Models and Initialization for Nook & Hook Application
-
-This module contains all database schemas, initialization functions,
-and setup utilities for the MongoDB-based Nook & Hook application.
-"""
-
 from flask import current_app
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
@@ -48,7 +41,7 @@ class DatabaseManager:
             'users', 'books', 'reading_sessions', 'completed_tasks',
             'rewards', 'user_badges', 'user_goals', 'themes',
             'user_preferences', 'notifications', 'activity_log',
-            'quotes', 'transactions', 'user_purchases'
+            'quotes', 'transactions', 'user_purchases', 'feedback'
         ]
         
         existing_collections = current_app.mongo.db.list_collection_names()
@@ -114,6 +107,11 @@ class DatabaseManager:
             current_app.mongo.db.user_purchases.create_index([("user_id", 1), ("purchased_at", -1)])
             current_app.mongo.db.user_purchases.create_index([("user_id", 1), ("item_id", 1)])
             current_app.mongo.db.user_purchases.create_index([("user_id", 1), ("type", 1)])
+            
+            # Feedback collection indexes
+            current_app.mongo.db.feedback.create_index([("email", 1)])
+            current_app.mongo.db.feedback.create_index([("timestamp", -1)])
+            current_app.mongo.db.feedback.create_index([("session_id", 1)])
             
             logger.info("Database indexes created successfully")
             
@@ -752,6 +750,12 @@ class AdminUtils:
                     ]))[0].get('total', 0),
                     'total_rewards': current_app.mongo.db.rewards.count_documents({}),
                     'badges_earned': current_app.mongo.db.user_badges.count_documents({})
+                },
+                'feedback': {
+                    'total': current_app.mongo.db.feedback.count_documents({}),
+                    'recent': current_app.mongo.db.feedback.count_documents({
+                        'timestamp': {'$gte': datetime.utcnow() - timedelta(days=7)}
+                    })
                 }
             }
             
@@ -760,6 +764,103 @@ class AdminUtils:
         except Exception as e:
             logger.error(f"Error getting system statistics: {str(e)}")
             return {}
+
+
+class FeedbackModel:
+    """Feedback model for managing user feedback"""
+    
+    @staticmethod
+    def create_feedback(db, feedback_entry):
+        """Create a new feedback entry"""
+        try:
+            feedback_data = {
+                'name': feedback_entry['name'],
+                'email': feedback_entry['email'],
+                'message': feedback_entry['message'],
+                'timestamp': feedback_entry['timestamp'],
+                'session_id': feedback_entry['session_id'],
+                'created_at': datetime.utcnow(),
+                'status': 'pending'  # Options: pending, reviewed, responded
+            }
+            
+            result = db.feedback.insert_one(feedback_data)
+            
+            # Log feedback submission
+            ActivityLogger.log_activity(
+                user_id=None,  # Feedback can be anonymous
+                action='feedback_submitted',
+                description=f'Feedback submitted by {feedback_entry["name"]}',
+                metadata={
+                    'feedback_id': str(result.inserted_id),
+                    'email': feedback_entry['email']
+                }
+            )
+            
+            return result.inserted_id
+            
+        except Exception as e:
+            logger.error(f"Error creating feedback: {str(e)}")
+            return None
+    
+    @staticmethod
+    def get_feedback(page=1, per_page=20, status=None):
+        """Get paginated list of feedback entries"""
+        try:
+            query = {}
+            if status:
+                query['status'] = status
+            
+            skip = (page - 1) * per_page
+            feedback = list(current_app.mongo.db.feedback.find(query)
+                           .sort('timestamp', -1)
+                           .skip(skip)
+                           .limit(per_page))
+            
+            total_feedback = current_app.mongo.db.feedback.count_documents(query)
+            
+            return feedback, total_feedback
+            
+        except Exception as e:
+            logger.error(f"Error getting feedback: {str(e)}")
+            return [], 0
+    
+    @staticmethod
+    def update_feedback_status(feedback_id, status, admin_id=None, response=None):
+        """Update feedback status and optionally add admin response"""
+        try:
+            update_data = {
+                'status': status,
+                'updated_at': datetime.utcnow()
+            }
+            
+            if admin_id:
+                update_data['reviewed_by'] = ObjectId(admin_id)
+            if response:
+                update_data['response'] = response
+                update_data['responded_at'] = datetime.utcnow()
+            
+            result = current_app.mongo.db.feedback.update_one(
+                {'_id': ObjectId(feedback_id)},
+                {'$set': update_data}
+            )
+            
+            if result.modified_count > 0:
+                ActivityLogger.log_activity(
+                    user_id=admin_id,
+                    action='feedback_updated',
+                    description=f'Feedback status updated to {status}',
+                    metadata={
+                        'feedback_id': str(feedback_id),
+                        'status': status,
+                        'response': response
+                    }
+                )
+            
+            return result.modified_count > 0
+            
+        except Exception as e:
+            logger.error(f"Error updating feedback status: {str(e)}")
+            return False
 
 
 # Database validation schemas (for reference)
@@ -827,6 +928,19 @@ REWARD_SCHEMA = {
     'description': {'type': 'string', 'required': True},
     'category': {'type': 'string'},
     'date': {'type': 'datetime', 'required': True}
+}
+
+FEEDBACK_SCHEMA = {
+    'name': {'type': 'string', 'required': True},
+    'email': {'type': 'string', 'required': True},
+    'message': {'type': 'string', 'required': True},
+    'timestamp': {'type': 'datetime', 'required': True},
+    'session_id': {'type': 'string', 'required': True},
+    'created_at': {'type': 'datetime', 'required': True},
+    'status': {'type': 'string', 'allowed': ['pending', 'reviewed', 'responded'], 'default': 'pending'},
+    'reviewed_by': {'type': 'objectid'},
+    'response': {'type': 'string'},
+    'responded_at': {'type': 'datetime'}
 }
 
 class QuoteModel:
