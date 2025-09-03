@@ -90,10 +90,11 @@
                     </li>
                     {% else %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
+                        <a class="nav-link btn-login" href="{{ url_for('auth.login') }}">Login</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('auth.register') }}">Register</a></li>
+                        <a class="nav-link btn-register" href="{{ url_for('auth.register') }}">Register</a>
+                    </li>
                     {% endif %}
                 </ul>
             </div>
@@ -122,6 +123,20 @@
     <!-- Footer -->
     <footer class="bg-light py-4 mt-5">
         <div class="container text-center">
+            <ul class="list-inline mb-3">
+                <li class="list-inline-item">
+                    <a href="{{ url_for('general.about') }}" class="text-muted text-decoration-none">About</a>
+                </li>
+                <li class="list-inline-item">
+                    <a href="{{ url_for('general.contact') }}" class="text-muted text-decoration-none">Contact</a>
+                </li>
+                <li class="list-inline-item">
+                    <a href="{{ url_for('general.privacy') }}" class="text-muted text-decoration-none">Privacy Policy</a>
+                </li>
+                <li class="list-inline-item">
+                    <a href="{{ url_for('general.terms') }}" class="text-muted text-decoration-none">Terms of Service</a>
+                </li>
+            </ul>
             <p class="mb-0 text-muted">&copy; 2025 Nooks. Track your reading and productivity.</p>
         </div>
     </footer>
