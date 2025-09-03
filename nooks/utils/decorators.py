@@ -44,3 +44,13 @@ def rate_limit(limit):
             return f(*args, **kwargs)
         return wrapped_function
     return decorator
+
+from flask import current_app
+
+def get_mongo_db():
+    """Retrieve the MongoDB database connection from the Flask app context."""
+    try:
+        return current_app.mongo.db
+    except AttributeError as e:
+        current_app.logger.error(f"MongoDB not initialized: {str(e)}")
+        raise Exception("MongoDB connection is not initialized in the application context")
