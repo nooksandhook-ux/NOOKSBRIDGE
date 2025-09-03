@@ -14,18 +14,18 @@ class DatabaseManager:
     """Manages database initialization and schema creation"""
     
     @staticmethod
-    def initialize_database():
+    def initialize_database(mongo):
         """Initialize database with all collections and indexes"""
         try:
             logger.info("Starting database initialization...")
             
             # Create collections and indexes
-            DatabaseManager._create_collections()
-            DatabaseManager._create_indexes()
+            DatabaseManager._create_collections(mongo)
+            DatabaseManager._create_indexes(mongo)
             
             # Initialize default data
-            DatabaseManager._create_default_admin()
-            DatabaseManager._initialize_default_data()
+            DatabaseManager._create_default_admin(mongo)
+            DatabaseManager._initialize_default_data(mongo)
             
             logger.info("Database initialization completed successfully")
             return True
@@ -35,7 +35,7 @@ class DatabaseManager:
             return False
     
     @staticmethod
-    def _create_collections():
+    def _create_collections(mongo):
         """Create all required collections if they don't exist"""
         collections = [
             'users', 'books', 'reading_sessions', 'completed_tasks',
@@ -44,74 +44,74 @@ class DatabaseManager:
             'quotes', 'transactions', 'user_purchases', 'feedback'
         ]
         
-        existing_collections = current_app.mongo.db.list_collection_names()
+        existing_collections = mongo.db.list_collection_names()
         
         for collection in collections:
             if collection not in existing_collections:
-                current_app.mongo.db.create_collection(collection)
+                mongo.db.create_collection(collection)
                 logger.info(f"Created collection: {collection}")
     
     @staticmethod
-    def _create_indexes():
+    def _create_indexes(mongo):
         """Create database indexes for optimal performance"""
         try:
             # Users collection indexes
-            current_app.mongo.db.users.create_index("username", unique=True)
-            current_app.mongo.db.users.create_index("email", unique=True)
-            current_app.mongo.db.users.create_index("created_at")
+            mongo.db.users.create_index("username", unique=True)
+            mongo.db.users.create_index("email", unique=True)
+            mongo.db.users.create_index("created_at")
             
             # Books collection indexes
-            current_app.mongo.db.books.create_index([("user_id", 1), ("status", 1)])
-            current_app.mongo.db.books.create_index([("user_id", 1), ("added_at", -1)])
-            current_app.mongo.db.books.create_index("isbn", sparse=True)
+            mongo.db.books.create_index([("user_id", 1), ("status", 1)])
+            mongo.db.books.create_index([("user_id", 1), ("added_at", -1)])
+            mongo.db.books.create_index("isbn", sparse=True)
             
             # Reading sessions indexes
-            current_app.mongo.db.reading_sessions.create_index([("user_id", 1), ("date", -1)])
-            current_app.mongo.db.reading_sessions.create_index([("user_id", 1), ("book_id", 1)])
+            mongo.db.reading_sessions.create_index([("user_id", 1), ("date", -1)])
+            mongo.db.reading_sessions.create_index([("user_id", 1), ("book_id", 1)])
             
             # Completed tasks indexes
-            current_app.mongo.db.completed_tasks.create_index([("user_id", 1), ("completed_at", -1)])
-            current_app.mongo.db.completed_tasks.create_index([("user_id", 1), ("category", 1)])
+            mongo.db.completed_tasks.create_index([("user_id", 1), ("completed_at", -1)])
+            mongo.db.completed_tasks.create_index([("user_id", 1), ("category", 1)])
             
             # Rewards collection indexes
-            current_app.mongo.db.rewards.create_index([("user_id", 1), ("date", -1)])
-            current_app.mongo.db.rewards.create_index([("user_id", 1), ("source", 1)])
-            current_app.mongo.db.rewards.create_index([("user_id", 1), ("category", 1)])
+            mongo.db.rewards.create_index([("user_id", 1), ("date", -1)])
+            mongo.db.rewards.create_index([("user_id", 1), ("source", 1)])
+            mongo.db.rewards.create_index([("user_id", 1), ("category", 1)])
             
             # User badges indexes
-            current_app.mongo.db.user_badges.create_index([("user_id", 1), ("badge_id", 1)], unique=True)
-            current_app.mongo.db.user_badges.create_index([("user_id", 1), ("earned_at", -1)])
+            mongo.db.user_badges.create_index([("user_id", 1), ("badge_id", 1)], unique=True)
+            mongo.db.user_badges.create_index([("user_id", 1), ("earned_at", -1)])
             
             # User goals indexes
-            current_app.mongo.db.user_goals.create_index([("user_id", 1), ("is_active", 1)])
-            current_app.mongo.db.user_goals.create_index([("user_id", 1), ("created_at", -1)])
+            mongo.db.user_goals.create_index([("user_id", 1), ("is_active", 1)])
+            mongo.db.user_goals.create_index([("user_id", 1), ("created_at", -1)])
             
             # Activity log indexes
-            current_app.mongo.db.activity_log.create_index([("user_id", 1), ("timestamp", -1)])
-            current_app.mongo.db.activity_log.create_index("timestamp", expireAfterSeconds=2592000)  # 30 days
+            mongo.db.activity_log.create_index([("user_id", 1), ("timestamp", -1)])
+            mongo.db.activity_log.create_index("timestamp", expireAfterSeconds=2592000)  # 30 days
             
             # Quotes collection indexes
-            current_app.mongo.db.quotes.create_index([("user_id", 1), ("status", 1)])
-            current_app.mongo.db.quotes.create_index([("user_id", 1), ("submitted_at", -1)])
-            current_app.mongo.db.quotes.create_index([("book_id", 1), ("user_id", 1)])
-            current_app.mongo.db.quotes.create_index("status")
-            current_app.mongo.db.quotes.create_index("submitted_at")
+            mongo.db.quotes.create_index([("user_id", 1), ("status", 1)])
+            mongo.db.quotes.create_index([("user_id", 1), ("submitted_at", -1)])
+            mongo.db.quotes.create_index([("book_id", 1), ("user_id", 1)])
+            mongo.db.quotes.create_index("status")
+            mongo.db.quotes.create_index("submitted_at")
             
             # Transactions collection indexes
-            current_app.mongo.db.transactions.create_index([("user_id", 1), ("timestamp", -1)])
-            current_app.mongo.db.transactions.create_index([("user_id", 1), ("status", 1)])
-            current_app.mongo.db.transactions.create_index("quote_id", sparse=True)
-            current_app.mongo.db.transactions.create_index("reward_type")
+            mongo.db.transactions.create_index([("user_id", 1), ("timestamp", -1)])
+            mongo.db.transactions.create_index([("user_id", 1), ("status", 1)])
+            mongo.db.transactions.create_index("quote_id", sparse=True)
+            mongo.db.transactions.create_index("reward_type")
             
             # User purchases collection indexes
-            current_app.mongo.db.user_purchases.create_index([("user_id", 1), ("purchased_at", -1)])
-            current_app.mongo.db.user_purchases.create_index([("user_id", 1), ("item_id", 1)])
-            current_app.mongo.db.user_purchases.create_index([("user_id", 1), ("type", 1)])
+            mongo.db.user_purchases.create_index([("user_id", 1), ("purchased_at", -1)])
+            mongo.db.user_purchases.create_index([("user_id", 1), ("item_id", 1)])
+            mongo.db.user_purchases.create_index([("user_id", 1), ("type", 1)])
             
             # Feedback collection indexes
-            current_app.mongo.db.feedback.create_index([("email", 1)])
-            current_app.mongo.db.feedback.create_index([("timestamp", -1)])
-            current_app.mongo.db.feedback.create_index([("session_id", 1)])
+            mongo.db.feedback.create_index([("email", 1)])
+            mongo.db.feedback.create_index([("timestamp", -1)])
+            mongo.db.feedback.create_index([("session_id", 1)])
             
             logger.info("Database indexes created successfully")
             
@@ -119,7 +119,7 @@ class DatabaseManager:
             logger.error(f"Error creating indexes: {str(e)}")
     
     @staticmethod
-    def _create_default_admin():
+    def _create_default_admin(mongo):
         """Create default admin user from environment variables"""
         try:
             # Get admin credentials from environment
@@ -128,7 +128,7 @@ class DatabaseManager:
             admin_email = os.environ.get('ADMIN_EMAIL', 'admin@nookhook.com')
             
             # Check if admin already exists
-            existing_admin = current_app.mongo.db.users.find_one({
+            existing_admin = mongo.db.users.find_one({
                 '$or': [
                     {'username': admin_username},
                     {'email': admin_email},
@@ -176,7 +176,7 @@ class DatabaseManager:
                 }
             }
             
-            result = current_app.mongo.db.users.insert_one(admin_data)
+            result = mongo.db.users.insert_one(admin_data)
             
             # Log admin activity
             ActivityLogger.log_activity(
@@ -192,7 +192,7 @@ class DatabaseManager:
             logger.error(f"Error creating default admin: {str(e)}")
     
     @staticmethod
-    def _initialize_default_data():
+    def _initialize_default_data(mongo):
         """Initialize default application data"""
         try:
             # Create default themes if they don't exist
@@ -236,16 +236,15 @@ class DatabaseManager:
             ]
             
             for theme in default_themes:
-                existing_theme = current_app.mongo.db.themes.find_one({'slug': theme['slug']})
+                existing_theme = mongo.db.themes.find_one({'slug': theme['slug']})
                 if not existing_theme:
-                    current_app.mongo.db.themes.insert_one(theme)
+                    mongo.db.themes.insert_one(theme)
                     logger.info(f"Created default theme: {theme['name']}")
             
             logger.info("Default data initialization completed")
             
         except Exception as e:
             logger.error(f"Error initializing default data: {str(e)}")
-
 
 class UserModel:
     """User model with CRUD operations and utilities"""
@@ -1372,3 +1371,4 @@ class GoogleBooksAPI:
         except Exception as e:
             logger.error(f"Error getting book details: {str(e)}")
             return None
+
