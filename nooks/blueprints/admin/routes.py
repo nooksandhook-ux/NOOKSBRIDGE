@@ -3,7 +3,7 @@ from bson import ObjectId
 from datetime import datetime, timedelta
 from utils.decorators import login_required, admin_required
 from blueprints.rewards.services import RewardService
-from models import AdminUtils, UserModel, ActivityLogger
+from models import AdminUtils, UserModel, ActivityLogger, FeedbackModel
 
 admin_bp = Blueprint('admin', __name__, template_folder='templates')
 
@@ -184,6 +184,49 @@ def rewards():
                          stats=reward_stats,
                          top_earners=top_earners,
                          reward_distribution=reward_distribution)
+
+@admin_bp.route('/feedback')
+@admin_required
+def feedback():
+    # Get filter parameters
+    status_filter = request.args.get('status', 'all')
+    page = int(request.args.get('page', 1))
+    per_page = 20
+    
+    # Get feedback entries
+    feedback_entries, total_feedback = FeedbackModel.get_feedback(
+        page=page,
+        per_page=per_page,
+        status=status_filter if status_filter != 'all' else None
+    )
+    
+    return render_template('admin/feedback.html',
+                         feedback_entries=feedback_entries,
+                         total_feedback=total_feedback,
+                         current_status=status_filter,
+                         page=page,
+                         has_next=len(feedback_entries) == per_page)
+
+@admin_bp.route('/update_feedback_status/<feedback_id>', methods=['POST'])
+@admin_required
+def update_feedback_status(feedback_id):
+    status = request.form.get('status')
+    response = request.form.get('response')
+    admin_id = session.get('user_id')
+    
+    success = FeedbackModel.update_feedback_status(
+        feedback_id=feedback_id,
+        status=status,
+        admin_id=admin_id,
+        response=response if response else None
+    )
+    
+    if success:
+        flash(f'Feedback status updated to {status}', 'success')
+    else:
+        flash('Failed to update feedback status', 'error')
+    
+    return redirect(url_for('admin.feedback'))
 
 @admin_bp.route('/award_points', methods=['POST'])
 @admin_required
