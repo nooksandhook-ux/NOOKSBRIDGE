@@ -9,6 +9,11 @@ from functools import wraps
 import requests
 from bson import ObjectId
 import json
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Import models and database utilities
 from models import DatabaseManager, UserModel, AdminUtils
@@ -32,20 +37,18 @@ def create_app():
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
     app.config['MONGO_URI'] = os.environ.get('MONGO_URI', 'mongodb://localhost:27017/nook_hook_app')
     
-    # Initialize Flask-Limiter
+    # Initialize extensions
     app.limiter = Limiter(
         app=app,
         key_func=get_remote_address,
         default_limits=["200 per day", "50 per hour"]
     )
-    
-    # Initialize MongoDB
-    mongo = PyMongo(app)
-    app.mongo = mongo
+    app.mongo = PyMongo(app)
     
     # Initialize database with application context
     with app.app_context():
-        DatabaseManager.initialize_database()
+        if not DatabaseManager.initialize_database(app.mongo):
+            logger.error("Failed to initialize database")
     
     # Register blueprints
     app.register_blueprint(auth_bp, url_prefix='/auth')
@@ -65,8 +68,6 @@ def create_app():
             return redirect(url_for('auth.login'))
         return render_template('home.html')
     
-    # Dashboard route moved to dashboard blueprint
-    # Redirect to dashboard blueprint
     @app.route('/dashboard')
     def dashboard():
         return redirect(url_for('dashboard.index'))
@@ -74,7 +75,6 @@ def create_app():
     return app
 
 def calculate_reading_streak(user_id, mongo):
-    # Simple streak calculation - can be enhanced
     recent_activity = mongo.db.reading_sessions.find({
         'user_id': user_id,
         'date': {'$gte': datetime.now() - timedelta(days=30)}
@@ -94,7 +94,6 @@ def calculate_reading_streak(user_id, mongo):
     return streak
 
 def calculate_task_streak(user_id, mongo):
-    # Simple streak calculation for tasks
     recent_tasks = mongo.db.completed_tasks.find({
         'user_id': user_id,
         'completed_at': {'$gte': datetime.now() - timedelta(days=30)}
