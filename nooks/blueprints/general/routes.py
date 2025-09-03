@@ -1,6 +1,13 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, session, redirect, url_for
 
 general_bp = Blueprint('general', __name__, template_folder='templates')
+
+@general_bp.route('/')
+def index():
+    """Handle the root URL and redirect first-time visitors to the landing page"""
+    if 'user_id' not in session:  # First-time or non-logged-in user
+        return redirect(url_for('general.landing'))
+    return redirect(url_for('index'))  # Redirect logged-in users to the main app (e.g., dashboard)
 
 @general_bp.route('/landing')
 def landing():
