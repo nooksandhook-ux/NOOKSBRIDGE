@@ -1,4 +1,6 @@
 from flask import Flask, render_template, redirect, url_for, session, request, jsonify, flash
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from flask_pymongo import PyMongo
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
@@ -25,12 +27,11 @@ from blueprints.quotes.routes import quotes_bp
 
 def create_app():
     app = Flask(__name__)
-
-limiter = Limiter(
-    app=app,
-    key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"]
-)
+    limiter = Limiter(
+        app=app,
+        key_func=get_remote_address,
+        default_limits=["200 per day", "50 per hour"]
+    )
     # Configuration
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
     app.config['MONGO_URI'] = os.environ.get('MONGO_URI', 'mongodb://localhost:27017/nook_hook_app')
@@ -113,6 +114,4 @@ def calculate_task_streak(user_id, mongo):
 app = create_app()
 
 if __name__ == '__main__':
-
     app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
-
