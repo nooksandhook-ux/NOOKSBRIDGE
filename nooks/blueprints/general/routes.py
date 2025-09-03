@@ -25,7 +25,7 @@ class FeedbackForm(FlaskForm):
 general_bp = Blueprint('general_bp', __name__, url_prefix='/')
 
 @general_bp.route('/')
-@limiter.limit("500 per minute", exempt_when=exempt_crawlers)
+@current_app.limiter.limit("500 per minute", exempt_when=exempt_crawlers)
 def landing():
     """Render the public landing page."""
     try:
@@ -71,7 +71,7 @@ def landing():
         ), 500
 
 @general_bp.route('/about')
-@limiter.limit("500 per minute", exempt_when=exempt_crawlers)
+@current_app.limiter.limit("500 per minute", exempt_when=exempt_crawlers)
 def about():
     """Render the public about page."""
     try:
@@ -91,7 +91,7 @@ def about():
         ), 404
 
 @general_bp.route('/contact')
-@limiter.limit("500 per minute", exempt_when=exempt_crawlers)
+@current_app.limiter.limit("500 per minute", exempt_when=exempt_crawlers)
 def contact():
     """Render the public contact page."""
     try:
@@ -111,7 +111,7 @@ def contact():
         ), 404
 
 @general_bp.route('/feedback', methods=['GET', 'POST'])
-@limiter.limit("10 per minute")
+@current_app.limiter.limit("10 per minute")
 def feedback():
     """Render the public feedback page and handle form submission."""
     form = FeedbackForm()
@@ -171,7 +171,7 @@ def feedback():
     return render_template('general/feedback.html', form=form, title='Feedback')
 
 @general_bp.route('/privacy')
-@limiter.limit("500 per minute", exempt_when=exempt_crawlers)
+@current_app.limiter.limit("500 per minute", exempt_when=exempt_crawlers)
 def privacy():
     """Render the public privacy policy page."""
     try:
@@ -191,7 +191,7 @@ def privacy():
         ), 404
 
 @general_bp.route('/terms')
-@limiter.limit("500 per minute", exempt_when=exempt_crawlers)
+@current_app.limiter.limit("500 per minute", exempt_when=exempt_crawlers)
 def terms():
     """Render the public terms of service page."""
     try:
