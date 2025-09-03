@@ -6,7 +6,7 @@ from wtforms.validators import DataRequired, Email, Length
 from jinja2.exceptions import TemplateNotFound
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
-from models import FeedbackManager, get_mongo_db
+from models import FeedbackManager
 from flask import current_app
 from utils.decorators import rate_limit
 
