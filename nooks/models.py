@@ -1,10 +1,16 @@
+"""
+Database Models and Initialization for Nook & Hook Application
+
+This module contains all database schemas, initialization functions,
+and setup utilities for the MongoDB-based Nook & Hook application.
+"""
+
 from flask import current_app
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 from bson import ObjectId
 import os
 import logging
-import requests
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -14,18 +20,18 @@ class DatabaseManager:
     """Manages database initialization and schema creation"""
     
     @staticmethod
-    def initialize_database(mongo):
+    def initialize_database():
         """Initialize database with all collections and indexes"""
         try:
             logger.info("Starting database initialization...")
             
             # Create collections and indexes
-            DatabaseManager._create_collections(mongo)
-            DatabaseManager._create_indexes(mongo)
+            DatabaseManager._create_collections()
+            DatabaseManager._create_indexes()
             
             # Initialize default data
-            DatabaseManager._create_default_admin(mongo)
-            DatabaseManager._initialize_default_data(mongo)
+            DatabaseManager._create_default_admin()
+            DatabaseManager._initialize_default_data()
             
             logger.info("Database initialization completed successfully")
             return True
@@ -35,83 +41,78 @@ class DatabaseManager:
             return False
     
     @staticmethod
-    def _create_collections(mongo):
+    def _create_collections():
         """Create all required collections if they don't exist"""
         collections = [
             'users', 'books', 'reading_sessions', 'completed_tasks',
             'rewards', 'user_badges', 'user_goals', 'themes',
             'user_preferences', 'notifications', 'activity_log',
-            'quotes', 'transactions', 'user_purchases', 'feedback'
+            'quotes', 'transactions', 'user_purchases'
         ]
         
-        existing_collections = mongo.db.list_collection_names()
+        existing_collections = current_app.mongo.db.list_collection_names()
         
         for collection in collections:
             if collection not in existing_collections:
-                mongo.db.create_collection(collection)
+                current_app.mongo.db.create_collection(collection)
                 logger.info(f"Created collection: {collection}")
     
     @staticmethod
-    def _create_indexes(mongo):
+    def _create_indexes():
         """Create database indexes for optimal performance"""
         try:
             # Users collection indexes
-            mongo.db.users.create_index("username", unique=True)
-            mongo.db.users.create_index("email", unique=True)
-            mongo.db.users.create_index("created_at")
+            current_app.mongo.db.users.create_index("username", unique=True)
+            current_app.mongo.db.users.create_index("email", unique=True)
+            current_app.mongo.db.users.create_index("created_at")
             
             # Books collection indexes
-            mongo.db.books.create_index([("user_id", 1), ("status", 1)])
-            mongo.db.books.create_index([("user_id", 1), ("added_at", -1)])
-            mongo.db.books.create_index("isbn", sparse=True)
+            current_app.mongo.db.books.create_index([("user_id", 1), ("status", 1)])
+            current_app.mongo.db.books.create_index([("user_id", 1), ("added_at", -1)])
+            current_app.mongo.db.books.create_index("isbn", sparse=True)
             
             # Reading sessions indexes
-            mongo.db.reading_sessions.create_index([("user_id", 1), ("date", -1)])
-            mongo.db.reading_sessions.create_index([("user_id", 1), ("book_id", 1)])
+            current_app.mongo.db.reading_sessions.create_index([("user_id", 1), ("date", -1)])
+            current_app.mongo.db.reading_sessions.create_index([("user_id", 1), ("book_id", 1)])
             
             # Completed tasks indexes
-            mongo.db.completed_tasks.create_index([("user_id", 1), ("completed_at", -1)])
-            mongo.db.completed_tasks.create_index([("user_id", 1), ("category", 1)])
+            current_app.mongo.db.completed_tasks.create_index([("user_id", 1), ("completed_at", -1)])
+            current_app.mongo.db.completed_tasks.create_index([("user_id", 1), ("category", 1)])
             
             # Rewards collection indexes
-            mongo.db.rewards.create_index([("user_id", 1), ("date", -1)])
-            mongo.db.rewards.create_index([("user_id", 1), ("source", 1)])
-            mongo.db.rewards.create_index([("user_id", 1), ("category", 1)])
+            current_app.mongo.db.rewards.create_index([("user_id", 1), ("date", -1)])
+            current_app.mongo.db.rewards.create_index([("user_id", 1), ("source", 1)])
+            current_app.mongo.db.rewards.create_index([("user_id", 1), ("category", 1)])
             
             # User badges indexes
-            mongo.db.user_badges.create_index([("user_id", 1), ("badge_id", 1)], unique=True)
-            mongo.db.user_badges.create_index([("user_id", 1), ("earned_at", -1)])
+            current_app.mongo.db.user_badges.create_index([("user_id", 1), ("badge_id", 1)], unique=True)
+            current_app.mongo.db.user_badges.create_index([("user_id", 1), ("earned_at", -1)])
             
             # User goals indexes
-            mongo.db.user_goals.create_index([("user_id", 1), ("is_active", 1)])
-            mongo.db.user_goals.create_index([("user_id", 1), ("created_at", -1)])
+            current_app.mongo.db.user_goals.create_index([("user_id", 1), ("is_active", 1)])
+            current_app.mongo.db.user_goals.create_index([("user_id", 1), ("created_at", -1)])
             
             # Activity log indexes
-            mongo.db.activity_log.create_index([("user_id", 1), ("timestamp", -1)])
-            mongo.db.activity_log.create_index("timestamp", expireAfterSeconds=2592000)  # 30 days
+            current_app.mongo.db.activity_log.create_index([("user_id", 1), ("timestamp", -1)])
+            current_app.mongo.db.activity_log.create_index("timestamp", expireAfterSeconds=2592000)  # 30 days
             
             # Quotes collection indexes
-            mongo.db.quotes.create_index([("user_id", 1), ("status", 1)])
-            mongo.db.quotes.create_index([("user_id", 1), ("submitted_at", -1)])
-            mongo.db.quotes.create_index([("book_id", 1), ("user_id", 1)])
-            mongo.db.quotes.create_index("status")
-            mongo.db.quotes.create_index("submitted_at")
+            current_app.mongo.db.quotes.create_index([("user_id", 1), ("status", 1)])
+            current_app.mongo.db.quotes.create_index([("user_id", 1), ("submitted_at", -1)])
+            current_app.mongo.db.quotes.create_index([("book_id", 1), ("user_id", 1)])
+            current_app.mongo.db.quotes.create_index("status")
+            current_app.mongo.db.quotes.create_index("submitted_at")
             
             # Transactions collection indexes
-            mongo.db.transactions.create_index([("user_id", 1), ("timestamp", -1)])
-            mongo.db.transactions.create_index([("user_id", 1), ("status", 1)])
-            mongo.db.transactions.create_index("quote_id", sparse=True)
-            mongo.db.transactions.create_index("reward_type")
+            current_app.mongo.db.transactions.create_index([("user_id", 1), ("timestamp", -1)])
+            current_app.mongo.db.transactions.create_index([("user_id", 1), ("status", 1)])
+            current_app.mongo.db.transactions.create_index("quote_id", sparse=True)
+            current_app.mongo.db.transactions.create_index("reward_type")
             
             # User purchases collection indexes
-            mongo.db.user_purchases.create_index([("user_id", 1), ("purchased_at", -1)])
-            mongo.db.user_purchases.create_index([("user_id", 1), ("item_id", 1)])
-            mongo.db.user_purchases.create_index([("user_id", 1), ("type", 1)])
-            
-            # Feedback collection indexes
-            mongo.db.feedback.create_index([("email", 1)])
-            mongo.db.feedback.create_index([("timestamp", -1)])
-            mongo.db.feedback.create_index([("session_id", 1)])
+            current_app.mongo.db.user_purchases.create_index([("user_id", 1), ("purchased_at", -1)])
+            current_app.mongo.db.user_purchases.create_index([("user_id", 1), ("item_id", 1)])
+            current_app.mongo.db.user_purchases.create_index([("user_id", 1), ("type", 1)])
             
             logger.info("Database indexes created successfully")
             
@@ -119,7 +120,7 @@ class DatabaseManager:
             logger.error(f"Error creating indexes: {str(e)}")
     
     @staticmethod
-    def _create_default_admin(mongo):
+    def _create_default_admin():
         """Create default admin user from environment variables"""
         try:
             # Get admin credentials from environment
@@ -128,7 +129,7 @@ class DatabaseManager:
             admin_email = os.environ.get('ADMIN_EMAIL', 'admin@nookhook.com')
             
             # Check if admin already exists
-            existing_admin = mongo.db.users.find_one({
+            existing_admin = current_app.mongo.db.users.find_one({
                 '$or': [
                     {'username': admin_username},
                     {'email': admin_email},
@@ -176,7 +177,7 @@ class DatabaseManager:
                 }
             }
             
-            result = mongo.db.users.insert_one(admin_data)
+            result = current_app.mongo.db.users.insert_one(admin_data)
             
             # Log admin activity
             ActivityLogger.log_activity(
@@ -192,7 +193,7 @@ class DatabaseManager:
             logger.error(f"Error creating default admin: {str(e)}")
     
     @staticmethod
-    def _initialize_default_data(mongo):
+    def _initialize_default_data():
         """Initialize default application data"""
         try:
             # Create default themes if they don't exist
@@ -236,15 +237,16 @@ class DatabaseManager:
             ]
             
             for theme in default_themes:
-                existing_theme = mongo.db.themes.find_one({'slug': theme['slug']})
+                existing_theme = current_app.mongo.db.themes.find_one({'slug': theme['slug']})
                 if not existing_theme:
-                    mongo.db.themes.insert_one(theme)
+                    current_app.mongo.db.themes.insert_one(theme)
                     logger.info(f"Created default theme: {theme['name']}")
             
             logger.info("Default data initialization completed")
             
         except Exception as e:
             logger.error(f"Error initializing default data: {str(e)}")
+
 
 class UserModel:
     """User model with CRUD operations and utilities"""
@@ -749,12 +751,6 @@ class AdminUtils:
                     ]))[0].get('total', 0),
                     'total_rewards': current_app.mongo.db.rewards.count_documents({}),
                     'badges_earned': current_app.mongo.db.user_badges.count_documents({})
-                },
-                'feedback': {
-                    'total': current_app.mongo.db.feedback.count_documents({}),
-                    'recent': current_app.mongo.db.feedback.count_documents({
-                        'timestamp': {'$gte': datetime.utcnow() - timedelta(days=7)}
-                    })
                 }
             }
             
@@ -763,103 +759,6 @@ class AdminUtils:
         except Exception as e:
             logger.error(f"Error getting system statistics: {str(e)}")
             return {}
-
-
-class FeedbackModel:
-    """Feedback model for managing user feedback"""
-    
-    @staticmethod
-    def create_feedback(db, feedback_entry):
-        """Create a new feedback entry"""
-        try:
-            feedback_data = {
-                'name': feedback_entry['name'],
-                'email': feedback_entry['email'],
-                'message': feedback_entry['message'],
-                'timestamp': feedback_entry['timestamp'],
-                'session_id': feedback_entry['session_id'],
-                'created_at': datetime.utcnow(),
-                'status': 'pending'  # Options: pending, reviewed, responded
-            }
-            
-            result = db.feedback.insert_one(feedback_data)
-            
-            # Log feedback submission
-            ActivityLogger.log_activity(
-                user_id=None,  # Feedback can be anonymous
-                action='feedback_submitted',
-                description=f'Feedback submitted by {feedback_entry["name"]}',
-                metadata={
-                    'feedback_id': str(result.inserted_id),
-                    'email': feedback_entry['email']
-                }
-            )
-            
-            return result.inserted_id
-            
-        except Exception as e:
-            logger.error(f"Error creating feedback: {str(e)}")
-            return None
-    
-    @staticmethod
-    def get_feedback(page=1, per_page=20, status=None):
-        """Get paginated list of feedback entries"""
-        try:
-            query = {}
-            if status:
-                query['status'] = status
-            
-            skip = (page - 1) * per_page
-            feedback = list(current_app.mongo.db.feedback.find(query)
-                           .sort('timestamp', -1)
-                           .skip(skip)
-                           .limit(per_page))
-            
-            total_feedback = current_app.mongo.db.feedback.count_documents(query)
-            
-            return feedback, total_feedback
-            
-        except Exception as e:
-            logger.error(f"Error getting feedback: {str(e)}")
-            return [], 0
-    
-    @staticmethod
-    def update_feedback_status(feedback_id, status, admin_id=None, response=None):
-        """Update feedback status and optionally add admin response"""
-        try:
-            update_data = {
-                'status': status,
-                'updated_at': datetime.utcnow()
-            }
-            
-            if admin_id:
-                update_data['reviewed_by'] = ObjectId(admin_id)
-            if response:
-                update_data['response'] = response
-                update_data['responded_at'] = datetime.utcnow()
-            
-            result = current_app.mongo.db.feedback.update_one(
-                {'_id': ObjectId(feedback_id)},
-                {'$set': update_data}
-            )
-            
-            if result.modified_count > 0:
-                ActivityLogger.log_activity(
-                    user_id=admin_id,
-                    action='feedback_updated',
-                    description=f'Feedback status updated to {status}',
-                    metadata={
-                        'feedback_id': str(feedback_id),
-                        'status': status,
-                        'response': response
-                    }
-                )
-            
-            return result.modified_count > 0
-            
-        except Exception as e:
-            logger.error(f"Error updating feedback status: {str(e)}")
-            return False
 
 
 # Database validation schemas (for reference)
@@ -893,7 +792,7 @@ TASK_SCHEMA = {
     'title': {'type': 'string', 'required': True},
     'description': {'type': 'string'},
     'category': {'type': 'string'},
-    'duration': {'type': 'integer', 'required': True},
+    'duration': {'type': 'integer'},
     'completed_at': {'type': 'datetime', 'required': True}
 }
 
@@ -920,27 +819,6 @@ TRANSACTION_SCHEMA = {
     'status': {'type': 'string', 'allowed': ['pending', 'completed', 'failed'], 'default': 'completed'}
 }
 
-REWARD_SCHEMA = {
-    'user_id': {'type': 'objectid', 'required': True},
-    'points': {'type': 'integer', 'required': True},
-    'source': {'type': 'string', 'required': True},
-    'description': {'type': 'string', 'required': True},
-    'category': {'type': 'string'},
-    'date': {'type': 'datetime', 'required': True}
-}
-
-FEEDBACK_SCHEMA = {
-    'name': {'type': 'string', 'required': True},
-    'email': {'type': 'string', 'required': True},
-    'message': {'type': 'string', 'required': True},
-    'timestamp': {'type': 'datetime', 'required': True},
-    'session_id': {'type': 'string', 'required': True},
-    'created_at': {'type': 'datetime', 'required': True},
-    'status': {'type': 'string', 'allowed': ['pending', 'reviewed', 'responded'], 'default': 'pending'},
-    'reviewed_by': {'type': 'objectid'},
-    'response': {'type': 'string'},
-    'responded_at': {'type': 'datetime'}
-}
 
 class QuoteModel:
     """Quote model for managing book quotes and verification"""
@@ -1370,5 +1248,17 @@ class GoogleBooksAPI:
             
         except Exception as e:
             logger.error(f"Error getting book details: {str(e)}")
-            return None
+            return Noneng', 'required': True},
+    'category': {'type': 'string'},
+    'duration': {'type': 'integer', 'required': True},
+    'completed_at': {'type': 'datetime', 'required': True}
+}
 
+REWARD_SCHEMA = {
+    'user_id': {'type': 'objectid', 'required': True},
+    'points': {'type': 'integer', 'required': True},
+    'source': {'type': 'string', 'required': True},
+    'description': {'type': 'string', 'required': True},
+    'category': {'type': 'string'},
+    'date': {'type': 'datetime', 'required': True}
+}
