@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from models import FeedbackModel
 from utils.decorators import rate_limit, get_mongo_db
+from utils import sanitize_input  # Ensure this is defined in utils/__init__.py
 
 # Exempt crawlers from rate limiting
 def exempt_crawlers():
@@ -124,7 +125,7 @@ def feedback():
         try:
             name = form.name.data
             email = form.email.data
-            message = utils.sanitize_input(form.message.data.strip(), max_length=1000)
+            message = sanitize_input(form.message.data.strip(), max_length=1000)
 
             with current_app.app_context():
                 db = get_mongo_db()
@@ -135,7 +136,7 @@ def feedback():
                     'timestamp': datetime.now(timezone.utc),
                     'session_id': session.get('sid', 'no-session-id')
                 }
-                create_feedback(db, feedback_entry)
+                FeedbackModel.create_feedback(db, feedback_entry)  # Use FeedbackModel.create_feedback
                 
                 db.audit_logs.insert_one({
                     'admin_id': 'system',
