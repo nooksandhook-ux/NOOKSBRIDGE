@@ -63,7 +63,31 @@ class DatabaseManager:
         """Create database indexes for optimal performance"""
         try:
             # Users collection indexes
+            # Drop existing username index to handle duplicate null values
+            try:
+                current_app.mongo.db.users.drop_index("username_1")
+                logger.info("Dropped existing username_1 index")
+            except Exception as e:
+                logger.warning(f"No existing username_1 index to drop or error dropping: {str(e)}")
+
+            # Clean up documents with null or missing usernames
+            null_username_docs = current_app.mongo.db.users.find({
+                '$or': [
+                    {'username': None},
+                    {'username': {'$exists': False}}
+                ]
+            })
+            for doc in null_username_docs:
+                user_id = str(doc['_id'])
+                # Option 1: Delete documents with null usernames
+                current_app.mongo.db.users.delete_one({'_id': doc['_id']})
+                logger.info(f"Deleted user document with null username, ID: {user_id}")
+
+            # Recreate unique index on username
             current_app.mongo.db.users.create_index("username", unique=True)
+            logger.info("Created unique index on users.username")
+
+            # Create other indexes
             current_app.mongo.db.users.create_index("email", unique=True)
             current_app.mongo.db.users.create_index("created_at")
             
@@ -119,6 +143,7 @@ class DatabaseManager:
             
         except Exception as e:
             logger.error(f"Error creating indexes: {str(e)}")
+            raise  # Re-raise to ensure the error is caught by initialize_database
     
     @staticmethod
     def _create_default_admin():
