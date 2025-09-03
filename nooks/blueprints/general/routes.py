@@ -6,9 +6,9 @@ from wtforms.validators import DataRequired, Email, Length
 from jinja2.exceptions import TemplateNotFound
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
-from models import FeedbackManager
+from models import FeedbackModel
 from flask import current_app
-from utils.decorators import rate_limit
+from utils.decorators import rate_limit, get_mongo_db
 
 # Exempt crawlers from rate limiting
 def exempt_crawlers():
