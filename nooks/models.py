@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from bson import ObjectId
 import os
 import logging
+import requests
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -792,7 +793,7 @@ TASK_SCHEMA = {
     'title': {'type': 'string', 'required': True},
     'description': {'type': 'string'},
     'category': {'type': 'string'},
-    'duration': {'type': 'integer'},
+    'duration': {'type': 'integer', 'required': True},
     'completed_at': {'type': 'datetime', 'required': True}
 }
 
@@ -819,6 +820,14 @@ TRANSACTION_SCHEMA = {
     'status': {'type': 'string', 'allowed': ['pending', 'completed', 'failed'], 'default': 'completed'}
 }
 
+REWARD_SCHEMA = {
+    'user_id': {'type': 'objectid', 'required': True},
+    'points': {'type': 'integer', 'required': True},
+    'source': {'type': 'string', 'required': True},
+    'description': {'type': 'string', 'required': True},
+    'category': {'type': 'string'},
+    'date': {'type': 'datetime', 'required': True}
+}
 
 class QuoteModel:
     """Quote model for managing book quotes and verification"""
@@ -1248,17 +1257,4 @@ class GoogleBooksAPI:
             
         except Exception as e:
             logger.error(f"Error getting book details: {str(e)}")
-            return Noneng', 'required': True},
-    'category': {'type': 'string'},
-    'duration': {'type': 'integer', 'required': True},
-    'completed_at': {'type': 'datetime', 'required': True}
-}
-
-REWARD_SCHEMA = {
-    'user_id': {'type': 'objectid', 'required': True},
-    'points': {'type': 'integer', 'required': True},
-    'source': {'type': 'string', 'required': True},
-    'description': {'type': 'string', 'required': True},
-    'category': {'type': 'string'},
-    'date': {'type': 'datetime', 'required': True}
-}
+            return None
