@@ -3,18 +3,23 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from bson import ObjectId
 from datetime import datetime
 from utils.decorators import login_required
+from models import UserModel  # Assuming UserModel is in a 'models' module
 
 auth_bp = Blueprint('auth', __name__, template_folder='templates')
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
-        
-        user = current_app.mongo.db.users.find_one({'email': email})
-        
-        if user and check_password_hash(user['password'], password):
+        email = request.form.get('email')
+        password = request.form.get('password')
+
+        if not email or not password:
+            flash('Email and password are required', 'error')
+            return render_template('auth/login.html')
+
+        user = UserModel.authenticate_user(email, password)
+
+        if user:
             session['user_id'] = str(user['_id'])
             session['username'] = user['username']
             session['email'] = user['email']
@@ -23,60 +28,47 @@ def login():
             return redirect(url_for('index'))
         else:
             flash('Invalid email or password', 'error')
-    
+
     return render_template('auth/login.html')
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form['username']
-        email = request.form['email']
-        password = request.form['password']
-        confirm_password = request.form['confirm_password']
-        
+        username = request.form.get('username')
+        email = request.form.get('email')
+        password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+
+        if not all([username, email, password, confirm_password]):
+            flash('All fields are required', 'error')
+            return render_template('auth/register.html')
+
         if password != confirm_password:
             flash('Passwords do not match', 'error')
             return render_template('auth/register.html')
-        
-        # Check if user exists
-        if current_app.mongo.db.users.find_one({'email': email}):
-            flash('Email already registered', 'error')
+
+        if len(password) < 6:
+            flash('Password must be at least 6 characters long', 'error')
             return render_template('auth/register.html')
-        
-        # Create new user
-        user_data = {
-            'username': username,
-            'email': email,
-            'password': generate_password_hash(password),
-            'created_at': datetime.utcnow(),
-            'theme': 'light',
-            'total_points': 0,
-            'level': 1,
-            'badges': [],
-            'is_admin': False,
-            'preferences': {
-                'notifications': True,
-                'theme': 'light',
-                'timer_sound': True,
-                'default_timer_duration': 25
-            }
-        }
-        
-        result = current_app.mongo.db.users.insert_one(user_data)
-        
+
+        user_id, error = UserModel.create_user(username, email, password)
+        if error:
+            flash(error, 'error')
+            return render_template('auth/register.html')
+
         # Create welcome reward entry
         from blueprints.rewards.services import RewardService
         RewardService.award_points(
-            user_id=result.inserted_id,
+            user_id=user_id,
             points=10,
             source='registration',
             description='Welcome to Nook & Hook!',
             category='milestone'
         )
-        
+
         flash('Registration successful! Please login.', 'success')
         return redirect(url_for('auth.login'))
-    
+
     return render_template('auth/register.html')
 
 @auth_bp.route('/logout')
@@ -136,13 +128,17 @@ def settings():
 @login_required
 def change_password():
     user_id = ObjectId(session['user_id'])
-    current_password = request.form['current_password']
-    new_password = request.form['new_password']
-    confirm_password = request.form['confirm_password']
+    current_password = request.form.get('current_password')
+    new_password = request.form.get('new_password')
+    confirm_password = request.form.get('confirm_password')
     
     user = current_app.mongo.db.users.find_one({'_id': user_id})
     
-    if not check_password_hash(user['password'], current_password):
+    if not user or 'password_hash' not in user:
+        flash('User account error. Please contact support.', 'error')
+        return redirect(url_for('auth.settings'))
+    
+    if not check_password_hash(user['password_hash'], current_password):
         flash('Current password is incorrect', 'error')
         return redirect(url_for('auth.settings'))
     
@@ -157,9 +153,8 @@ def change_password():
     # Update password
     current_app.mongo.db.users.update_one(
         {'_id': user_id},
-        {'$set': {'password': generate_password_hash(new_password)}}
+        {'$set': {'password_hash': generate_password_hash(new_password)}}
     )
     
     flash('Password changed successfully!', 'success')
-
     return redirect(url_for('auth.settings'))
