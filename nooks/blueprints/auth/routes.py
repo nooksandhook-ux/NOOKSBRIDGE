@@ -75,7 +75,7 @@ def register():
 def logout():
     session.clear()
     flash('You have been logged out', 'info')
-    return redirect(url_for('general_bp.landing'))
+    return redirect(url_for('general.landing'))
 
 @auth_bp.route('/profile')
 @login_required
@@ -158,3 +158,4 @@ def change_password():
     
     flash('Password changed successfully!', 'success')
     return redirect(url_for('auth.settings'))
+
