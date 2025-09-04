@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block title %}Book Details - {{ book.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Book Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="text-success">
+            <i class="bi bi-book me-2"></i>{{ book.title }}
+        </h1>
+        <a href="{{ url_for('nook.index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Back to Library
+        </a>
+    </div>
+
+    <!-- Book Details -->
+    <div class="row">
+        <!-- Book Cover and Info -->
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <img src="{{ book.cover_image or '/static/images/default-book-cover.png' }}" 
+                     class="card-img-top img-fluid" 
+                     style="max-height: 400px; object-fit: cover;" 
+                     alt="{{ book.title }}">
+                <div class="card-body">
+                    <h5 class="card-title">{{ book.title }}</h5>
+                    <p class="card-text text-muted">by {{ book.authors | join(', ') }}</p>
+                    {% if book.genre %}
+                        <p class="card-text"><strong>Genre:</strong> {{ book.genre }}</p>
+                    {% endif %}
+                    {% if book.isbn %}
+                        <p class="card-text"><strong>ISBN:</strong> {{ book.isbn }}</p>
+                    {% endif %}
+                    {% if book.published_date %}
+                        <p class="card-text"><strong>Published:</strong> {{ book.published_date }}</p>
+                    {% endif %}
+                    <p class="card-text"><strong>Pages:</strong> {{ book.page_count }}</p>
+                    <p class="card-text">
+                        <strong>Status:</strong> 
+                        <span class="badge 
+                            {% if book.status == 'reading' %}bg-warning
+                            {% elif book.status == 'finished' %}bg-success
+                            {% else %}bg-secondary{% endif %}">
+                            {{ book.status.title() }}
+                        </span>
+                    </p>
+                    {% if book.rating > 0 %}
+                        <p class="card-text">
+                            <strong>Rating:</strong> 
+                            {% for i in range(book.rating) %}
+                                <i class="bi bi-star-fill text-warning"></i>
+                            {% endfor %}
+                            {% for i in range(5 - book.rating) %}
+                                <i class="bi bi-star text-muted"></i>
+                            {% endfor %}
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Book Progress and Actions -->
+        <div class="col-md-8">
+            <!-- Progress -->
+            {% if book.page_count > 0 %}
+                <div class="card mb-4 shadow-sm">
+                    <div class="card-body">
+                        <h5>Reading Progress</h5>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar" 
+                                 style="width: {{ (book.current_page / book.page_count * 100) | round(1) }}%">
+                            </div>
+                        </div>
+                        <small class="text-muted mt-2 d-block">
+                            {{ book.current_page }} / {{ book.page_count }} pages
+                            ({{ (book.current_page / book.page_count * 100) | round(1) }}%)
+                        </small>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Update Progress Form -->
+            <div class="card mb-4 shadow-sm">
+                <div class="card-body">
+                    <h5>Update Progress</h5>
+                    <form action="{{ url_for('nook.update_progress', book_id=book._id) }}" method="POST">
+                        <div class="mb-3">
+                            <label for="current_page" class="form-label">Current Page</label>
+                            <input type="number" class="form-control" id="current_page" name="current_page" 
+                                   value="{{ book.current_page }}" min="0" max="{{ book.page_count }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="duration_minutes" class="form-label">Reading Duration (minutes)</label>
+                            <input type="number" class="form-control" id="duration_minutes" name="duration_minutes" 
+                                   value="0" min="0">
+                        </div>
+                        <div class="mb-3">
+                            <label for="session_notes" class="form-label">Session Notes</label>
+                            <textarea class="form-control" id="session_notes" name="session_notes" rows="3"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-circle me-2"></i>Update Progress
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Rate Book Form -->
+            <div class="card mb-4 shadow-sm">
+                <div class="card-body">
+                    <h5>Rate Book</h5>
+                    <form action="{{ url_for('nook.rate_book', book_id=book._id) }}" method="POST">
+                        <div class="mb-3">
+                            <label for="rating" class="form-label">Rating</label>
+                            <select class="form-select" id="rating" name="rating" required>
+                                <option value="" disabled selected>Select rating</option>
+                                {% for i in range(1, 6) %}
+                                    <option value="{{ i }}" {% if book.rating == i %}selected{% endif %}>{{ i }} Star{% if i > 1 %}s{% endif %}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="review" class="form-label">Review</label>
+                            <textarea class="form-control" id="review" name="review" rows="3">{{ book.review or '' }}</textarea>
+                        </div>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-star-fill me-2"></i>Submit Rating
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Description -->
+    {% if book.description %}
+        <div class="card mb-4 shadow-sm">
+            <div class="card-body">
+                <h5>Description</h5>
+                <p>{{ book.description }}</p>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Key Takeaways -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <h5>Key Takeaways</h5>
+            {% if book.key_takeaways %}
+                <ul class="list-group list-group-flush">
+                    {% for takeaway in book.key_takeaways %}
+                        <li class="list-group-item">
+                            <p class="mb-1">{{ takeaway.text }}</p>
+                            {% if takeaway.page_reference %}
+                                <small class="text-muted">Page: {{ takeaway.page_reference }} | Added: {{ takeaway.date.strftime('%Y-%m-%d') }}</small>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-muted">No key takeaways added yet.</p>
+            {% endif %}
+            <!-- Add Takeaway Form -->
+            <form action="{{ url_for('nook.add_takeaway', book_id=book._id) }}" method="POST" class="mt-3">
+                <div class="mb-3">
+                    <label for="takeaway" class="form-label">Add Key Takeaway</label>
+                    <textarea class="form-control" id="takeaway" name="takeaway" rows="2" required></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="page_reference" class="form-label">Page Reference (optional)</label>
+                    <input type="text" class="form-control" id="page_reference" name="page_reference">
+                </div>
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-plus-circle me-2"></i>Add Takeaway
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Quotes -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <h5>Quotes</h5>
+            {% if book.quotes %}
+                <ul class="list-group list-group-flush">
+                    {% for quote in book.quotes %}
+                        <li class="list-group-item">
+                            <blockquote class="blockquote mb-1">
+                                <p>{{ quote.text }}</p>
+                            </blockquote>
+                            {% if quote.page or quote.context %}
+                                <small class="text-muted">
+                                    {% if quote.page %}Page: {{ quote.page }}{% if quote.context %}, {% endif %}{% endif %}
+                                    {% if quote.context %}Context: {{ quote.context }}{% endif %}
+                                    | Added: {{ quote.date.strftime('%Y-%m-%d') }}
+                                </small>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-muted">No quotes added yet.</p>
+            {% endif %}
+            <!-- Add Quote Form -->
+            <form action="{{ url_for('nook.add_quote', book_id=book._id) }}" method="POST" class="mt-3">
+                <div class="mb-3">
+                    <label for="quote" class="form-label">Add Quote</label>
+                    <textarea class="form-control" id="quote" name="quote" rows="2" required></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="page" class="form-label">Page (optional)</label>
+                    <input type="text" class="form-control" id="page" name="page">
+                </div>
+                <div class="mb-3">
+                    <label for="context" class="form-label">Context (optional)</label>
+                    <textarea class="form-control" id="context" name="context" rows="2"></textarea>
+                </div>
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-quote me-2"></i>Add Quote
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Reading Sessions -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <h5>Reading Sessions</h5>
+            {% if reading_sessions %}
+                <ul class="list-group list-group-flush">
+                    {% for session in reading_sessions %}
+                        <li class="list-group-item">
+                            <p class="mb-1">
+                                <strong>{{ session.date.strftime('%Y-%m-%d %H:%M') }}</strong>
+                                | Pages: {{ session.start_page }} - {{ session.end_page }} ({{ session.pages_read }} pages)
+                                | Duration: {{ session.duration_minutes }} minutes
+                            </p>
+                            {% if session.notes %}
+                                <p class="mb-0">{{ session.notes }}</p>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-muted">No reading sessions recorded.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Notes -->
+    {% if book.notes %}
+        <div class="card mb-4 shadow-sm">
+            <div class="card-body">
+                <h5>Notes</h5>
+                <p>{{ book.notes }}</p>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
