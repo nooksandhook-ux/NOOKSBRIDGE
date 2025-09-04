@@ -17,7 +17,7 @@
     <div class="col-md-3">
         <div class="card bg-primary text-white">
             <div class="card-body text-center">
-                <h3 class="fw-bold">{{ total_books }}</h3>
+                <h3 class="fw-bold">{{ stats.total_books }}</h3>
                 <p class="mb-0">Total Books</p>
             </div>
         </div>
@@ -25,7 +25,7 @@
     <div class="col-md-3">
         <div class="card bg-warning text-white">
             <div class="card-body text-center">
-                <h3 class="fw-bold">{{ reading_books }}</h3>
+                <h3 class="fw-bold">{{ stats.reading_books }}</h3>
                 <p class="mb-0">Currently Reading</p>
             </div>
         </div>
@@ -33,7 +33,7 @@
     <div class="col-md-3">
         <div class="card bg-success text-white">
             <div class="card-body text-center">
-                <h3 class="fw-bold">{{ finished_books }}</h3>
+                <h3 class="fw-bold">{{ stats.finished_books }}</h3>
                 <p class="mb-0">Finished</p>
             </div>
         </div>
@@ -41,7 +41,7 @@
     <div class="col-md-3">
         <div class="card bg-info text-white">
             <div class="card-body text-center">
-                <h3 class="fw-bold">{{ (finished_books / total_books * 100) | round(1) if total_books > 0 else 0 }}%</h3>
+                <h3 class="fw-bold">{{ stats.completion_rate }}%</h3>
                 <p class="mb-0">Completion Rate</p>
             </div>
         </div>
